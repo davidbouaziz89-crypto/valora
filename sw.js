@@ -1,6 +1,6 @@
 /* Service Worker VALORA — hors-ligne (même fonctionnement que celui de Zeste, sans notifications push)
    ⚠️ Toute modification de l'appli publiée : incrémenter CACHE, sinon les téléphones gardent l'ancienne version. */
-const CACHE = 'valora-v1';
+const CACHE = 'valora-v2';
 const ASSETS = [
   './',
   './index.html',

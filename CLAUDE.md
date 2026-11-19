@@ -37,7 +37,8 @@ Une correction faite dans Prêts ou Or de VALORA ne concerne plus Zeste (qui ne 
 - Format des prêts **identique à Zeste** (`debts`), contrôle serveur des remboursements identique
   (`valora.verif_remboursements` = copie de `zeste.verif_remboursements`).
 - Coffres : `coffres[] = {id, nom, items[]}`, élément = `{type:'objet', nom, qte, valeurC|null, cur, photo}`
-  ou `{type:'enveloppe', nom, montantC, cur}`. Montres : `{marque, modele, ref, prixC|null, cur,
+  ou `{type:'enveloppe', nom, montantC, cur, ts}` (`ts` = date d'ajout, posée à la création, jamais changée ni
+  inventée : une enveloppe sans `ts` affiche « Date d'ajout inconnue »). Montres : `{marque, modele, ref, prixC|null, cur,
   dateAchat, photo, cote}` ; `cote = {valeurC, cur, methode:'auto'|'manuel', source, date, …}`.
   **Montants en centimes entiers ; devises EUR/USD/ILS jamais additionnées entre elles.**
 - **Photos** : `valora.photos` (JPEG base64 ≤ 450 Ko, identifiant uuid choisi par l'appareil),

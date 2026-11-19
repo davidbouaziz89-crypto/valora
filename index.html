@@ -1355,6 +1355,7 @@
   <div class="grab"></div>
   <div class="sheet-body">
     <h3 id="veltTitle">Ajouter dans le coffre</h3>
+    <p class="remb-hint" id="veltDate" style="display:none;margin:-4px 2px 12px"></p>
     <div class="seg" id="veltType">
       <button type="button" class="on" data-vt="objet">💎 Objet de valeur</button>
       <button type="button" data-vt="enveloppe">✉️ Enveloppe</button>
@@ -2832,6 +2833,7 @@ function vPhotoFin(f, enregistre){
 var coffreOpenId = null;
 let velt = null; // formulaire d'un élément en cours
 function coffreById(cid){ return (S.coffres||[]).find(c=>c.id===cid); }
+function veltDateAjout(e){ const t = Number(e && e.ts); return t >= Date.UTC(2020,0,1) && t <= Date.now()+864e5 ? new Date(t) : null; }
 function veltTotalC(e){ return e.type==='enveloppe' ? (e.montantC||0) : (e.valeurC!=null ? e.valeurC*(e.qte||1) : 0); }
 function coffreTotaux(c){
   const r = {tot:{}, nObj:0, nEnv:0, sansValeur:0};
@@ -2883,7 +2885,7 @@ function veltLigne(e){
   if(e.type==='enveloppe'){
     return `<button class="vrow" data-velt="${escA(e.id)}"><span class="vthumb">✉️</span>
       <span class="vr-txt"><span class="vr-t">${esc(String(e.nom||''))}</span><span class="vr-s">Enveloppe d'argent</span></span>
-      <span class="vr-r"><b>${vfmtC(e.montantC, e.cur)}</b></span></button>`;
+      <span class="vr-r"><b>${vfmtC(e.montantC, e.cur)}</b><small>✏️ Modifier</small></span></button>`;
   }
   const q = e.qte||1;
   const sub = 'Quantité : '+q + (e.valeurC!=null && q>1 ? ' · '+vfmtC(e.valeurC, e.cur)+' l\'unité' : '');
@@ -2957,6 +2959,10 @@ function openVelt(cid, eid){
   document.getElementById('veltMontant').value = e && e.type==='enveloppe' ? vSaisie(e.montantC) : '';
   document.getElementById('veltQte').textContent = String(velt.qte);
   document.getElementById('veltErr').textContent = '';
+  // date d'ajout d'une enveloppe : celle enregistrée à sa création (ts), jamais inventée
+  const dEl = document.getElementById('veltDate'), dAj = e && e.type==='enveloppe' ? veltDateAjout(e) : null;
+  dEl.style.display = e && e.type==='enveloppe' ? '' : 'none';
+  dEl.textContent = dAj ? '📅 Ajoutée le '+dAj.toLocaleDateString('fr-FR')+' à '+dAj.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}) : '📅 Date d\'ajout inconnue';
   // le type d'un élément existant ne change pas (évite de perdre sa photo ou sa quantité par erreur)
   document.querySelectorAll('#veltType button').forEach(b=>{ b.disabled = !!e; });
   veltSyncType(); veltSyncCur(); vPhotoChamp('velt', velt);
@@ -2985,7 +2991,9 @@ function saveVelt(){
   if(velt.eid){
     const i = c.items.findIndex(x=>x.id===velt.eid);
     if(i<0){ closeVelt(false); toast('⚠️ Élément introuvable (modifié sur un autre appareil ?)'); return; }
-    nouveau.ts = c.items[i].ts || nouveau.ts; c.items[i] = nouveau;
+    // la date d'ajout (ts) reste celle de la création ; sans date connue, on n'en invente pas
+    if(c.items[i].ts) nouveau.ts = c.items[i].ts; else delete nouveau.ts;
+    c.items[i] = nouveau;
   } else c.items.push(nouveau);
   const modif = !!velt.eid;
   closeVelt(true); render(); toast(modif ? 'Modifié ✏️' : 'Ajouté au coffre 🔐');

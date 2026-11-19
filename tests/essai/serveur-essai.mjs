@@ -100,10 +100,10 @@ async function decor(vide = false){
         { id: 'e1', type: 'objet', nom: 'Collier en or', qte: 1, valeurC: 240000, cur: 'EUR', photo: null, ts: 1 },
         { id: 'e2', type: 'objet', nom: 'Pièces anciennes', qte: 3, valeurC: 45000, cur: 'EUR', photo: null, ts: 2 },
         { id: 'e3', type: 'objet', nom: 'Bague de mamie', qte: 1, valeurC: null, cur: 'EUR', photo: null, ts: 3 },
-        { id: 'e4', type: 'enveloppe', nom: 'Réserve', montantC: 500000, cur: 'EUR', ts: 4 },
-        { id: 'e5', type: 'enveloppe', nom: 'Voyage USA', montantC: 120000, cur: 'USD', ts: 5 },
+        { id: 'e4', type: 'enveloppe', nom: 'Réserve', montantC: 500000, cur: 'EUR', ts: Date.UTC(2026, 10, 19, 21, 32) },
+        { id: 'e5', type: 'enveloppe', nom: 'Voyage USA', montantC: 120000, cur: 'USD', ts: Date.UTC(2026, 10, 19, 21, 37) },
       ] },
-      { id: 'c2', nom: 'Banque Tel-Aviv', ts: 2, items: [{ id: 'e6', type: 'enveloppe', nom: 'Shekels', montantC: 1500000, cur: 'ILS', ts: 6 }] },
+      { id: 'c2', nom: 'Banque Tel-Aviv', ts: 2, items: [{ id: 'e6', type: 'enveloppe', nom: 'Shekels', montantC: 1500000, cur: 'ILS' }] },   // e6 : enveloppe sans date connue
     ],
     montres: [
       { id: 'm1', marque: 'Rolex', modele: 'Submariner Date', ref: '126610LN', prixC: 950000, cur: 'EUR', dateAchat: '2021-04-03', photo: null, cote: null, ts: 1 },
