@@ -1,5 +1,21 @@
 # VALORA — procédure de mise en ligne (jour J)
 
+## ✅ PUBLIÉ le 19/11/2026 (≈ 21:00–21:20, heure de Paris) — journal
+- Sauvegarde vérifiée juste avant : `~/sauvegardes/zeste-20261119-200628` (serveur), rechargée à l'identique ;
+  répétition complète sur sa copie locale (copie supprimée ensuite). Ancien Zeste étiqueté `zeste-avant-valora`.
+- Base, sous verrou de déploiement, en UNE transaction (essai à blanc annulé puis réel) : `valora-setup.sql`,
+  puis **prêts figés dans Zeste** (`zeste/sql/zeste-prets-figes.sql` : un ancien Zeste resté ouvert ne peut plus
+  créer ni modifier de prêt — refus affiché, copie de secours gardée), puis copie des prêts. Contrôles : Zeste et
+  Or inchangés, prêts identiques Zeste = VALORA, requête de contrôle = 0 ligne. Verrou rendu.
+  → **plus besoin de relancer la copie le lendemain** : aucun prêt ne peut plus changer dans Zeste.
+- Fonction `valora-montre-cote` copiée (empreintes identiques au dépôt), aucun redémarrage.
+- VALORA : nouveau dépôt public à UN seul commit (l'ancien historique, qui contenait des chiffres personnels de
+  vérification, reste dans le dépôt PRIVÉ `valora-historique-prive`, jamais publié) ; Pages sur `main`.
+- Zeste : `separation-valora` fusionnée dans `main` (f198541), cache `zeste-v4`.
+- Contrôles en ligne sans compte (aucune donnée réelle lue ni écrite) : 4 onglets VALORA, 3 onglets Zeste,
+  service workers séparés (`/valora/`, `/zeste/`), API et fonction refusent les visiteurs non connectés.
+- Retour arrière de Zeste désormais : republier `zeste-avant-valora` ET `zeste/sql/zeste-prets-figes-retour.sql`.
+
 État au 19/11/2026 : **rien n'est en production.** Tout est prêt et vérifié sur bancs locaux.
 Chaque étape « base » ou « serveur » se fait **seulement avec le GO de David**, **une seule
 conversation à la fois** sur le serveur, sous le **verrou de déploiement**.
