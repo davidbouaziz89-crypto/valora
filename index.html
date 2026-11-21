@@ -1097,6 +1097,35 @@
   .sheet.montre-sheet{z-index:53} #montreBg{z-index:52}
   .sheet.mform-sheet{z-index:55} #mformBg{z-index:54}
   .sheet.mcote-sheet{z-index:57} #mcoteBg{z-index:56}
+  /* emplacement des pièces d'or (fenêtre ouverte depuis l'onglet Or OU depuis un coffre : au-dessus des deux) */
+  .sheet.oremp-sheet{z-index:61} #orEmpBg{z-index:60}
+  .or-emp{display:block;width:100%;text-align:left;border:none;border-top:1px solid var(--line);background:none;font:inherit;color:var(--ink);
+    font-size:13px;font-weight:700;padding:8px 12px 9px;line-height:1.35;overflow-wrap:anywhere}
+  button.or-emp{cursor:pointer} button.or-emp:active{background:var(--line)}
+  .or-emp.vide{color:var(--muted)} .or-emp.alerte{color:var(--red)}
+  .or-achat-l .emp{grid-column:1/-1;font-style:normal;font-size:12.5px;font-weight:700;color:var(--ink);overflow-wrap:anywhere}
+  .or-achat-l .emp.vide{color:var(--muted)} .or-achat-l .emp.alerte{color:var(--red)}
+  .or-d-emp{margin-top:12px;border:2px solid var(--line);border-radius:14px;padding:10px 12px;background:var(--field)}
+  .or-d-emp small{display:block;font-size:11.5px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.3px}
+  .or-d-emp .l{font-size:14.5px;font-weight:800;margin-top:3px;overflow-wrap:anywhere;line-height:1.4}
+  .or-d-emp .l.vide{color:var(--muted)} .or-d-emp .l.alerte{color:var(--red)}
+  .or-d-emp .or-lien{padding:8px 0 0;min-height:40px}
+  .emp-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--field);border:2px solid var(--line);border-radius:14px;padding:8px 10px;margin-top:8px}
+  .emp-row.on{border-color:var(--or2,#e0b84a)}
+  .emp-row .emp-nom{flex:1 1 140px;min-width:0;font-weight:800;font-size:15px;overflow-wrap:anywhere}
+  .emp-row .or-step{flex:0 0 auto;gap:4px}
+  .emp-row .or-step button{width:42px;height:42px}
+  .emp-row .or-step input{width:64px;flex:none;padding:8px 4px}
+  .emp-row .emp-tout{flex:none;border:none;background:none;font-weight:800;font-size:13.5px;color:var(--purple);cursor:pointer;min-height:42px;padding:0 4px}
+  .emp-tete{display:flex;align-items:center;gap:10px;margin:2px 0 4px}
+  .emp-tete .or-coin{flex:none}
+  .emp-tete b{display:block;font-size:15.5px;font-weight:800;overflow-wrap:anywhere}
+  .emp-tete small{display:block;font-size:12.5px;color:var(--muted);font-weight:700}
+  .emp-alerte{margin-top:10px;border-radius:12px;padding:8px 10px;font-size:13.5px;font-weight:700;line-height:1.4;background:rgba(255,90,90,.12);color:var(--red)}
+  .emp-bilan{margin:12px 2px 0;font-size:14px;font-weight:800;line-height:1.4}
+  .emp-bilan.ko{color:var(--red)}
+  .emp-liens{display:flex;justify-content:center;gap:16px;flex-wrap:wrap;margin-top:8px}
+  .vrow .or-coin{flex:none}
   .vlab{display:block;font-weight:800;font-size:13.5px;color:var(--muted);margin:12px 2px 6px}
   .vfield-row{display:flex;gap:8px;align-items:stretch}
   .vfield-row .field-wrap{flex:1;min-width:0}
@@ -1249,6 +1278,18 @@
   <div class="grab"></div>
   <div class="sheet-body" id="orLotBody"></div>
   <button class="submit" id="orLotVendre">✏️ Modifier l'achat</button>
+</div>
+
+<!-- OR ↔ COFFRES : EMPLACEMENT DES PIÈCES D'UN ACHAT (répartition dans les coffres existants) -->
+<div class="sheet-bg" id="orEmpBg"></div>
+<div class="sheet oremp-sheet" id="orEmpSheet">
+  <button class="sheet-x" id="orEmpX" aria-label="Fermer">✕</button>
+  <div class="grab"></div>
+  <div class="sheet-body" id="orEmpBody"></div>
+  <div class="sheet-foot">
+    <button type="button" class="btn-sec" id="orEmpAnnuler">Annuler</button>
+    <button type="button" class="submit" id="orEmpOk">Enregistrer</button>
+  </div>
 </div>
 
 <!-- OR : HISTORIQUE DES OPÉRATIONS -->
@@ -1605,6 +1646,7 @@ function paint(){
   if(personOpenKey!=null) renderPersonSheet(); // fiche personne ouverte : soldes à jour
   if(loanOpenId) renderLoanDetail(); // détail d'un prêt ouvert : soldes à jour
   if(coffreOpenId) renderCoffreSheet(); // coffre ouvert : contenu à jour
+  if(typeof orLotId!=='undefined' && orLotId) orRenderLotOuvert(); // fiche d'un achat d'or ouverte : emplacement à jour
   if(montreOpenId) renderMontreSheet(); // fiche montre ouverte : valeur à jour
   renderProgress();
 }
@@ -2836,29 +2878,37 @@ function coffreById(cid){ return (S.coffres||[]).find(c=>c.id===cid); }
 function veltDateAjout(e){ const t = Number(e && e.ts); return t >= Date.UTC(2020,0,1) && t <= Date.now()+864e5 ? new Date(t) : null; }
 function veltTotalC(e){ return e.type==='enveloppe' ? (e.montantC||0) : (e.valeurC!=null ? e.valeurC*(e.qte||1) : 0); }
 function coffreTotaux(c){
-  const r = {tot:{}, nObj:0, nEnv:0, sansValeur:0};
+  const r = {tot:{}, nObj:0, nEnv:0, sansValeur:0, or:null, nOr:0};
   (c.items||[]).forEach(e=>{
     if(e.type==='enveloppe'){ r.nEnv++; vAjout(r.tot, e.cur, e.montantC||0); }
     else { r.nObj++; if(e.valeurC!=null) vAjout(r.tot, e.cur, veltTotalC(e)); else r.sansValeur++; }
   });
+  // pièces d'or rangées ici (onglet Or) : valeur calculée par le module Or, en euros, comptée une seule fois
+  r.or = typeof orpDuCoffre==='function' ? orpDuCoffre(c) : null;
+  if(r.or){ r.nOr = r.or.n + r.or.attente; if(r.or.valC) vAjout(r.tot, 'EUR', r.or.valC); }
   return r;
 }
 function coffreParts(t){
   const p = [];
   p.push(t.nObj+' objet'+vS(t.nObj)); p.push(t.nEnv+' enveloppe'+vS(t.nEnv));
+  if(t.nOr) p.push(t.nOr+' pièce'+vS(t.nOr)+' d\'or');
   return p.join(' · ');
 }
 function renderCoffres(){
   const el = document.getElementById('view-coffres'), cs = S.coffres||[];
-  const tot = {}; let nObj=0, nEnv=0, sansV=0;
-  cs.forEach(c=>{ const t = coffreTotaux(c); VCUR_LISTE.forEach(k=>{ if(t.tot[k]) vAjout(tot,k,t.tot[k]); }); nObj+=t.nObj; nEnv+=t.nEnv; sansV+=t.sansValeur; });
+  const tot = {}; let nObj=0, nEnv=0, sansV=0, nOr=0, orSans=0;
+  cs.forEach(c=>{ const t = coffreTotaux(c); VCUR_LISTE.forEach(k=>{ if(t.tot[k]) vAjout(tot,k,t.tot[k]); }); nObj+=t.nObj; nEnv+=t.nEnv; sansV+=t.sansValeur;
+    nOr+=t.nOr; if(t.or) orSans += t.or.sansCours + t.or.attente; });
   const k = vDevises(tot);
   let h = `<div class="vsum"><div class="vs-lab">🔐 Dans tes coffres</div><div class="vs-vals">`
     + (k.length ? k.map(c=>`<span class="vs-val">${vfmtC(tot[c],c)}</span>`).join('<span class="vs-sep">·</span>') : `<span class="vs-val">${vfmtC(0,'EUR')}</span>`)
     + `</div><div class="vs-sub">${cs.length} coffre${vS(cs.length)} · ${nObj} objet${vS(nObj)} · ${nEnv} enveloppe${vS(nEnv)}`
-    + (sansV ? ` · ${sansV} objet${vS(sansV)} sans valeur (non compté${vS(sansV)})` : '') + `</div></div>`;
+    + (nOr ? ` · ${nOr} pièce${vS(nOr)} d'or` : '')
+    + (sansV ? ` · ${sansV} objet${vS(sansV)} sans valeur (non compté${vS(sansV)})` : '')
+    + (orSans ? ` · ${orSans} pièce${vS(orSans)} d'or sans cours (non comptée${vS(orSans)})` : '') + `</div></div>`;
   if(!cs.length){ el.innerHTML = h + emptyState('🔐','Aucun coffre','Appuie sur + pour créer ton premier coffre'); return; }
-  const hit = c => matchQ(c.nom) || (c.items||[]).some(e=>matchQ(e.nom));
+  const hit = c => matchQ(c.nom) || (c.items||[]).some(e=>matchQ(e.nom))
+    || (typeof orpDuCoffre==='function' && (orpDuCoffre(c).lignes||[]).some(x=>matchQ(orNomLot(x.l))));
   const list = cs.filter(c=>!searchQ || hit(c));
   if(!list.length) h += emptyState('🔍','Aucun résultat','Essaie un autre mot');
   list.forEach(c=>{
@@ -2872,12 +2922,13 @@ function renderCoffres(){
   el.querySelectorAll('[data-cof]').forEach(b=>{ b.onclick = ()=>openCoffre(b.dataset.cof); });
 }
 function nomCoffreValide(n){ n = String(n||'').trim().replace(/\s+/g,' '); return n ? n.slice(0,60) : ''; }
-function nouveauCoffre(){
+function nouveauCoffre(ouvrir){
   const n = nomCoffreValide(prompt('Nom du nouveau coffre ?', 'Coffre '+((S.coffres||[]).length+1)));
-  if(!n) return;
+  if(!n) return null;
   const c = {id:id(), nom:n, items:[], ts:Date.now()};
   S.coffres.push(c); render(); toast('🔐 Coffre « '+n+' » créé');
-  openCoffre(c.id);
+  if(ouvrir!==false) openCoffre(c.id); // false : créé depuis l'emplacement d'une pièce d'or
+  return c;
 }
 function openCoffre(cid){ coffreOpenId = cid; renderCoffreSheet(); if(coffreOpenId) vOuvrir('coffre'); }
 function closeCoffre(){ coffreOpenId = null; vFermer('coffre'); }
@@ -2901,14 +2952,18 @@ function renderCoffreSheet(){
   const objs = items.filter(e=>e.type!=='enveloppe'), envs = items.filter(e=>e.type==='enveloppe');
   let h = `<h3>🔐 ${esc(String(c.nom||''))}</h3>
     <div class="remb-ctx"><span>Valeur totale du coffre</span><br><b style="font-size:20px">${vTotTxt(t.tot)}</b>`
-    + (t.sansValeur ? `<br><span>${t.sansValeur} objet${vS(t.sansValeur)} sans valeur estimée (non compté${vS(t.sansValeur)})</span>` : '') + `</div>`;
+    + (t.or && t.or.valC ? `<br><span>dont or : ${vfmtC(t.or.valC,'EUR')} (valeur métal au cours actuel)</span>` : '')
+    + (t.sansValeur ? `<br><span>${t.sansValeur} objet${vS(t.sansValeur)} sans valeur estimée (non compté${vS(t.sansValeur)})</span>` : '')
+    + (t.or && (t.or.sansCours || t.or.attente) ? `<br><span>${t.or.sansCours + t.or.attente} pièce${vS(t.or.sansCours + t.or.attente)} d'or sans cours disponible (non comptée${vS(t.or.sansCours + t.or.attente)})</span>` : '') + `</div>`;
   h += `<div class="sec-h" style="cursor:default">💎 Objets de valeur <span class="n">${objs.length}</span></div>`;
   h += objs.length ? objs.map(veltLigne).join('') : `<div class="remb-empty">Aucun objet pour l'instant.</div>`;
+  if(typeof orpSectionCoffre==='function') h += orpSectionCoffre(t.or);
   h += `<div class="sec-h" style="cursor:default">✉️ Enveloppes d'argent <span class="n">${envs.length}</span></div>`;
   h += envs.length ? envs.map(veltLigne).join('') : `<div class="remb-empty">Aucune enveloppe pour l'instant.</div>`;
   h += `<div class="vbtns"><button class="act-btn alt" id="cofRen">✏️ Renommer</button><button class="act-btn alt" id="cofDel" style="color:var(--red)">🗑️ Supprimer le coffre</button></div>`;
   body.innerHTML = h;
   body.querySelectorAll('[data-velt]').forEach(b=>{ b.onclick = ()=>openVelt(c.id, b.dataset.velt); });
+  body.querySelectorAll('[data-orp]').forEach(b=>{ b.onclick = ()=>orpOuvrir(b.dataset.orp); });
   document.getElementById('cofRen').onclick = ()=>{
     const n = nomCoffreValide(prompt('Nouveau nom du coffre ?', c.nom)); if(!n || n===c.nom) return;
     c.nom = n; render(); toast('✏️ Coffre renommé');
@@ -2920,8 +2975,12 @@ function supprimerCoffre(cid){
   const idx = (S.coffres||[]).findIndex(c=>c.id===cid); if(idx<0) return;
   const c = S.coffres[idx], n = (c.items||[]).length;
   const t = coffreTotaux(c);
+  // les pièces d'or ne sont jamais supprimées : seul leur emplacement disparaît (repris par l'onglet Or)
+  const nOr = t.nOr || (typeof orpListe==='function' ? orpListe(c).reduce((s,p)=>s+(p.qte|0),0) : 0);
+  const totObj = {}; (c.items||[]).forEach(e=>{ if(e.type==='enveloppe') vAjout(totObj, e.cur, e.montantC||0); else if(e.valeurC!=null) vAjout(totObj, e.cur, veltTotalC(e)); });
   const msg = 'Supprimer le coffre « '+c.nom+' » ?'
-    + (n ? '\n\nIl contient '+n+' élément'+vS(n)+(vDevises(t.tot).length?' (valeur '+vTotTxt(t.tot)+')':'')+', qui seront supprimés aussi.' : '')
+    + (nOr ? '\n\n🪙 Il contient '+nOr+' pièce'+vS(nOr)+' d\'or. Elles restent dans l\'onglet Or (achats, quantités et valeurs inchangés), avec « Emplacement non renseigné ».' : '')
+    + (n ? '\n\nIl contient '+(nOr?'aussi ':'')+n+' élément'+vS(n)+(vDevises(totObj).length?' (valeur '+vTotTxt(totObj)+')':'')+', qui seront supprimés.' : '')
     + '\n\nCette suppression est définitive.';
   if(!confirm(msg)) return;
   S.coffres.splice(idx, 1);
@@ -3726,6 +3785,8 @@ function renderOr(){
   document.getElementById('orAdd').onclick = ()=>orOuvrirAchat(null);
   el.querySelectorAll('[data-grp]').forEach(b=>{ b.onclick = ()=>orOuvrirGroupe(b.dataset.grp); });
   el.querySelectorAll('[data-lot]').forEach(b=>{ b.onclick = (e)=>{ e.stopPropagation(); orOuvrirLot(b.dataset.lot); }; });
+  el.querySelectorAll('[data-oremp]').forEach(b=>{ b.onclick = (e)=>{ e.stopPropagation(); orpOuvrir(b.dataset.oremp); }; });
+  orpAvertir(); // achats, ventes ou cours changés : valeur de l'or des coffres à jour
 }
 // nom d'une référence (pièce du catalogue ou saisie à la main)
 function orNomGroupe(x){ const t = OR_TYPE[x.type];
@@ -3753,12 +3814,18 @@ function orCarteGroupe(x){
       <tr><th>Valeur métal</th><td>${orEur(x.valeurPiece)}</td><td>${orEur(x.valeur)}</td></tr>
       <tr class="tot"><th>${x.latent==null || x.latent>=0 ? 'Gain' : 'Perte'}</th><td class="${orClasse(gainPiece)}">${orEur(gainPiece,true)}</td><td class="${cls}">${orEur(x.latent,true)}</td></tr>
     </tbody></table>`;
+  // emplacement : un seul achat → touche pour le changer ; plusieurs achats → résumé (détail par achat ci-dessous)
+  const E = orpEtat(x.achats.map(({l})=>l));
+  if(E.detenu > 0) h += plusieurs
+    ? `<div class="or-emp ${E.cls}">${orpTexte(E)}</div>`
+    : `<button class="or-emp ${E.cls}" data-oremp="${esc(String(x.achats[0].l.id))}" aria-label="Emplacement : ${escA(orpTexte(E, true))}. Modifier">${orpTexte(E)}</button>`;
   if(plusieurs){
     h += `<button class="or-ref-achats" data-grp="${esc(x.cle)}">${ouvert ? '▾' : '▸'} ${x.achats.length} achats${ouvert ? '' : ' — voir le détail'}</button>`;
     if(ouvert) h += `<div class="or-achats">` + x.achats.map(({l, s})=>{
       const pu = s.Q ? Math.round(s.cout/s.Q) : 0;
       return `<button class="or-achat-l${s.detenu===0?' sold':''}" data-lot="${esc(String(l.id))}"><span>${frDate(l.date_achat)}${l.millesime ? ' · '+l.millesime : ''}</span>
-        <span>${s.Q} × ${orEur(pu)}</span><b>${orEur(s.cout)}</b>${s.vendu ? `<i>${s.detenu===0 ? 'vendu' : s.vendu+' vendue'+(s.vendu>1?'s':'')}</i>` : ''}</button>`;
+        <span>${s.Q} × ${orEur(pu)}</span><b>${orEur(s.cout)}</b>${s.vendu ? `<i>${s.detenu===0 ? 'vendu' : s.vendu+' vendue'+(s.vendu>1?'s':'')}</i>` : ''}${(()=>{
+          const E = orpEtat([l]); return E.detenu>0 ? `<em class="emp ${E.cls}">${orpTexte(E)}</em>` : ''; })()}</button>`;
     }).join('') + `</div>`;
   }
   return h + `</div>`;
@@ -3885,6 +3952,7 @@ function orRenderLotOuvert(){
       <div><small>Valeur estimée</small><b>${sold ? '—' : orEur(s.valeur)}</b></div>
       <div><small>${sold ? 'Gain sur la vente' : 'Gain / perte'}</small><b class="${orClasse(gain)}">${gain==null ? '—' : orEur(gain,true)}</b><i class="${orClasse(gain)}">${orPct(gainPct)}</i></div>
     </div>
+    ${sold ? '' : orpBlocFiche(l)}
     ${orFicheLot(l, g)}
     ${l.commentaire ? `<p class="or-d-note">💬 ${esc(String(l.commentaire))}</p>` : ''}`;
   const sug = orSuggestion(l);
@@ -3898,6 +3966,7 @@ function orRenderLotOuvert(){
   const lv = document.getElementById('orLotVente'); if(lv) lv.onclick = ()=>orOuvrirVente(l.id, null);
   document.getElementById('orLotDel').onclick = ()=>orSupprimerLot(l.id);
   const ra = document.getElementById('orRattacher'); if(ra) ra.onclick = ()=>orRattacher(l.id, sug.code);
+  const em = document.getElementById('orLotEmp'); if(em) em.onclick = ()=>orpOuvrir(l.id);
   body.querySelectorAll('[data-vedit]').forEach(b=>{ b.onclick = ()=>orOuvrirVente(l.id, b.dataset.vedit); });
   body.querySelectorAll('[data-vdel]').forEach(b=>{ b.onclick = ()=>orSupprimerVente(b.dataset.vdel); });
   // action principale de la fiche : corriger l'achat
@@ -3957,6 +4026,7 @@ async function orSupprimerLot(id){
   if(error){ toast('⚠️ '+orMsg(error)); return; }
   OR.lots = OR.lots.filter(x=>x.id!==l.id); OR.ventes = OR.ventes.filter(v=>v.lot_id!==l.id); delete orPhotos[l.id];
   orEcrireCache(); orLotId = null; orFermerFen('orLot'); renderOr(); renderProgress(); toast('Achat supprimé 🗑️');
+  orpApresChangement(l.id); // l'achat n'existe plus : il n'occupe plus aucun coffre
 }
 async function orSupprimerVente(vid){
   const v = (OR.ventes||[]).find(x=>String(x.id)===String(vid)); if(!v) return;
@@ -4152,6 +4222,7 @@ async function orEnregistrerAchat(){
     const edit = orF.edit; orF = null; orEcrireCache(); orFermerFen('orAchat');
     renderOr(); orRenderLotOuvert(); renderProgress();
     toast(photoKo ? '⚠️ Achat enregistré, mais la photo n\'a pas pu l\'être' : edit ? 'Achat modifié ✏️' : 'Achat enregistré 🪙'); if(!edit) playDing();
+    if(edit) orpApresChangement(data.id); // quantité de l'achat réduite : répartition à ajuster
     if(rattrapage) orCours(false); // historique du cours à compléter depuis cette date
   }catch(e){ fail(orMsg(e)); }
   finally{ orOcc = false; btn.disabled = false; }
@@ -4230,9 +4301,204 @@ async function orEnregistrerVente(){
     const i = OR.ventes.findIndex(x=>x.id===data.id); if(i>=0) OR.ventes[i] = data; else OR.ventes.push(data);
     const edit = orV.edit; orV = null; orEcrireCache(); orFermerFen('orVente');
     renderOr(); orRenderLotOuvert(); renderProgress(); toast(edit ? 'Vente modifiée ✏️' : 'Vente enregistrée 💶'); if(!edit) playDing();
+    orpApresChangement(data.lot_id); // moins de pièces détenues : jamais plus de pièces rangées que de pièces détenues
   }catch(e){ fail(orMsg(e)); }
   finally{ orOcc = false; btn.disabled = false; }
 }
+
+/* ---------- OR ↔ COFFRES : emplacement des pièces ----------
+   Les pièces sont rangées dans les coffres EXISTANTS (onglet Coffres) : la répartition est gardée
+   DANS chaque coffre de l'état synchronisé, coffre.orPieces = [{lot:<id de l'achat>, qte:<nombre>}].
+   Rien n'est écrit dans les tables de l'Or : achats, ventes, cours et calculs ne changent pas.
+   - Jamais plus de pièces comptées dans les coffres que de pièces détenues : au-delà (vente faite
+     ailleurs), le surplus n'est ni affiché ni valorisé, et l'achat est signalé « à revoir ».
+   - Valeur d'une pièce = celle du module Or (orLotStats), en euros, comptée une seule fois.
+   - Supprimer un coffre supprime sa répartition : ses pièces redeviennent « non renseignées ». */
+function orpListe(c){ return (c && Array.isArray(c.orPieces)) ? c.orPieces.filter(p=>p && p.lot!=null && (p.qte|0)>0) : []; }
+// répartition enregistrée d'un achat, coffre par coffre (ordre des coffres)
+function orpBrut(lotId){
+  const k = String(lotId), r = [];
+  (S.coffres||[]).forEach(c=>{ const q = orpListe(c).filter(p=>String(p.lot)===k).reduce((s,p)=>s+(p.qte|0), 0); if(q>0) r.push({ c, qte:q }); });
+  return r;
+}
+function orpDetenu(l){ return orLotStats(l, OR.ventes, null).detenu; }
+// répartition comptée : plafonnée aux pièces détenues
+function orpRepartition(l){
+  const det = orpDetenu(l), brut = orpBrut(l.id), parts = [];
+  let reste = det;
+  brut.forEach(x=>{ const q = Math.min(x.qte, reste); if(q>0){ parts.push({ c:x.c, qte:q }); reste -= q; } });
+  const totBrut = brut.reduce((s,x)=>s+x.qte, 0);
+  return { detenu:det, parts, nonPlace:reste, totBrut, trop: totBrut>det };
+}
+// état d'un ou plusieurs achats (carte d'une pièce = somme de ses achats)
+function orpEtat(lots){
+  const E = { detenu:0, parts:[], nonPlace:0, totBrut:0, trop:false, lots:lots.length, cls:'' }, parC = new Map();
+  lots.forEach(l=>{
+    const R = orpRepartition(l);
+    E.detenu += R.detenu; E.nonPlace += R.nonPlace; E.totBrut += R.totBrut; if(R.trop) E.trop = true;
+    R.parts.forEach(p=>{ const x = parC.get(p.c.id); if(x) x.qte += p.qte; else { const y = { c:p.c, qte:p.qte }; parC.set(p.c.id, y); E.parts.push(y); } });
+  });
+  E.cls = E.trop ? 'alerte' : !E.parts.length ? 'vide' : '';
+  return E;
+}
+// texte d'une ligne (HTML échappé ; brut = texte simple pour aria-label)
+function orpTexte(E, brut){
+  const B = c => { const n = String(c.nom||'Coffre'); return brut ? n : '<b>'+esc(n)+'</b>'; };
+  if(E.trop) return '⚠️ Répartition à revoir : ' + (E.lots===1
+    ? E.totBrut+' pièce'+vS(E.totBrut)+' rangée'+vS(E.totBrut)+' pour '+E.detenu+' détenue'+vS(E.detenu)
+    : 'voir le détail des achats');
+  if(!E.parts.length) return '📍 Emplacement non renseigné';
+  if(E.parts.length===1 && !E.nonPlace) return '🔐 Coffre : '+B(E.parts[0].c);
+  return '🔐 '+E.parts.map(p=>p.qte+' dans '+B(p.c)).join(' · ')
+    + (E.nonPlace ? ' · '+E.nonPlace+' non renseignée'+vS(E.nonPlace) : '');
+}
+// bloc « Emplacement » de la fiche d'un achat
+function orpBlocFiche(l){
+  const E = orpEtat([l]);
+  let t;
+  if(E.trop) t = orpTexte(E);
+  else if(!E.parts.length) t = 'Emplacement non renseigné';
+  else if(E.parts.length===1 && !E.nonPlace) t = 'Coffre : <b>'+esc(String(E.parts[0].c.nom||''))+'</b>';
+  else t = E.parts.map(p=>`${p.qte} pièce${vS(p.qte)} · <b>${esc(String(p.c.nom||''))}</b>`).join('<br>')
+    + (E.nonPlace ? `<br>${E.nonPlace} pièce${vS(E.nonPlace)} · emplacement non renseigné` : '');
+  return `<div class="or-d-emp"><small>📍 Emplacement</small><div class="l ${E.cls}">${t}</div>
+    <button type="button" class="or-lien" id="orLotEmp">${E.parts.length || E.trop ? '📍 Modifier l\'emplacement' : '📍 Choisir le coffre'}</button></div>`;
+}
+// pièces d'or d'un coffre (onglet Coffres) : quantités comptées + valeur du module Or
+function orpDuCoffre(c){
+  const r = { lignes:[], n:0, valC:0, sansCours:0, attente:0 };
+  const liste = orpListe(c); if(!liste.length) return r;
+  if(!OR || !OR.charge){ r.attente = liste.reduce((s,p)=>s+(p.qte|0), 0); return r; }   // or pas encore chargé (déconnecté)
+  const g = orCoursG(), vus = new Set();
+  liste.forEach(p=>{
+    const k = String(p.lot); if(vus.has(k)) return; vus.add(k);
+    const l = orLot(k); if(!l) return;                       // achat supprimé sur un autre appareil : jamais compté
+    const part = orpRepartition(l).parts.find(x=>x.c.id===c.id); if(!part) return;
+    const s = orLotStats(l, OR.ventes, g);
+    const unitC = (s.valeur!=null && s.detenu>0) ? s.valeur/s.detenu : null;   // valeur d'UNE pièce selon le module Or
+    const valC = unitC==null ? null : unitC*part.qte;
+    r.lignes.push({ l, qte:part.qte, unitC, valC }); r.n += part.qte;
+    if(valC==null) r.sansCours += part.qte; else r.valC += valC;
+  });
+  return r;
+}
+function orpSectionCoffre(o){
+  if(!o) return '';
+  let h = `<div class="sec-h" style="cursor:default">🪙 Pièces d'or <span class="n">${o.n + o.attente}</span></div>`;
+  if(o.attente) return h + `<div class="remb-empty">🔒 ${o.attente} pièce${vS(o.attente)} d'or rangée${vS(o.attente)} ici : connecte-toi pour ${o.attente>1?'les':'la'} voir.</div>`;
+  if(!o.lignes.length) return h + `<div class="remb-empty">Aucune pièce d'or. Pour en ranger ici : onglet Or → touche un achat → 📍 Emplacement.</div>`;
+  return h + o.lignes.map(x=>`<button class="vrow" data-orp="${escA(String(x.l.id))}">${orCoin(x.l)}
+      <span class="vr-txt"><span class="vr-t">${esc(orNomLot(x.l))}</span>
+      <span class="vr-s">Quantité : ${x.qte}${x.unitC!=null && x.qte>1 ? ' · '+orEur(x.unitC)+' la pièce' : ''} · achat du ${frDate(x.l.date_achat)}</span></span>
+      <span class="vr-r">${x.valC!=null ? `<b>${orEur(x.valC)}</b>` : `<small>cours indisponible</small>`}<small>📍 Déplacer</small></span></button>`).join('');
+}
+// achats, ventes ou cours changés : onglet Coffres et coffre ouvert à jour
+function orpAvertir(){
+  if(typeof dirtyViews==='undefined') return;
+  if(tab==='coffres') renderView('coffres'); else dirtyViews.add('coffres');
+  if(coffreOpenId) renderCoffreSheet();
+}
+// enregistre la répartition complète d'un achat (q = {idCoffre: nombre}) dans les coffres
+function orpFixer(lotId, q){
+  const k = String(lotId);
+  (S.coffres||[]).forEach(c=>{
+    const autres = (Array.isArray(c.orPieces) ? c.orPieces : []).filter(p=>p && String(p.lot)!==k);
+    const n = Math.max(0, q[c.id]|0);
+    if(n>0) autres.push({ lot:k, qte:n });
+    if(autres.length) c.orPieces = autres; else delete c.orPieces;
+  });
+}
+// après une vente, une modification ou une suppression d'achat : jamais plus de pièces rangées que détenues
+function orpApresChangement(lotId){
+  const brut = orpBrut(lotId); if(!brut.length) return;
+  const l = orLot(lotId), det = l ? orpDetenu(l) : 0, tot = brut.reduce((s,x)=>s+x.qte, 0);
+  if(tot <= det) return;
+  if(det===0 || brut.length===1){         // sans ambiguïté : plus aucune pièce, ou un seul coffre
+    const q = {}; if(det>0) q[brut[0].c.id] = det;
+    orpFixer(lotId, q); render(); return;
+  }
+  orpOuvrir(lotId, `Il te reste ${det} pièce${vS(det)} de cet achat, mais ${tot} sont rangées dans tes coffres : indique où se trouve${det>1?'nt':''} ${det>1?'celles qui restent':'celle qui reste'}.`);
+}
+
+/* fenêtre « Emplacement » : répartir les pièces détenues d'un achat entre les coffres */
+var orp = null;
+function orpOuvrir(lotId, msg){
+  if(!cloud.on){ toast('🔒 Connecte-toi pour ranger ton or'); return; }
+  const l = orLot(lotId); if(!l){ toast('Cet achat n\'existe plus'); return; }
+  const det = orpDetenu(l);
+  if(det<=0){ toast('Toutes les pièces de cet achat sont vendues'); return; }
+  const q = {}; orpBrut(l.id).forEach(x=>{ q[x.c.id] = x.qte; });
+  orp = { lot:String(l.id), detenu:det, q, msg:msg||'' };
+  orpRender(); vOuvrir('orEmp');
+}
+function orpFermer(){ orp = null; const a = document.activeElement; if(a && a.blur) a.blur(); vFermer('orEmp'); }
+function orpTotal(){ return (S.coffres||[]).reduce((s,c)=>s+((orp.q[c.id]|0)), 0); }
+function orpRender(){
+  if(!orp) return;
+  const l = orLot(orp.lot), body = document.getElementById('orEmpBody');
+  if(!l){ orpFermer(); return; }
+  const cs = S.coffres||[];
+  let h = `<h3>📍 Emplacement</h3>
+    <div class="emp-tete">${orCoin(l)}<span><b>${esc(orNomLot(l))}</b><small>Achat du ${frDate(l.date_achat)} · ${orp.detenu} pièce${vS(orp.detenu)} détenue${vS(orp.detenu)}</small></span></div>`;
+  if(orp.msg) h += `<div class="emp-alerte" role="alert">⚠️ ${esc(orp.msg)}</div>`;
+  h += cs.length ? `<p class="remb-hint" style="margin:10px 2px 0">Indique combien de pièces sont dans chaque coffre. Les autres restent « non renseignées ».</p>`
+    : `<div class="remb-empty" style="margin-top:10px">Aucun coffre pour l'instant. Crée-le ici : il apparaîtra aussi dans l'onglet Coffres.</div>`;
+  cs.forEach(c=>{
+    const n = orp.q[c.id]|0, nom = String(c.nom||'Coffre');
+    h += `<div class="emp-row${n?' on':''}" data-cid="${escA(c.id)}"><span class="emp-nom">🔐 ${esc(nom)}</span>
+      <div class="or-step"><button type="button" data-em="-1" aria-label="Une pièce de moins dans ${escA(nom)}">−</button><input class="field" inputmode="numeric" pattern="[0-9]*" value="${n}" aria-label="Nombre de pièces dans ${escA(nom)}" autocomplete="off" /><button type="button" data-em="1" aria-label="Une pièce de plus dans ${escA(nom)}">＋</button></div>
+      <button type="button" class="emp-tout">Tout ici</button></div>`;
+  });
+  h += `<p class="emp-bilan" id="orEmpBilan" role="status"></p>
+    <div class="emp-liens"><button type="button" class="or-lien" id="orEmpNouveau">＋ Nouveau coffre</button>${cs.length ? `<button type="button" class="or-lien rouge" id="orEmpVider">Tout en « non renseigné »</button>` : ''}</div>`;
+  body.innerHTML = h;
+  body.querySelectorAll('.emp-row').forEach(row=>{
+    const cid = row.dataset.cid, inp = row.querySelector('input');
+    const marquer = ()=>{ row.classList.toggle('on', (orp.q[cid]|0)>0); orpBilan(); };
+    row.querySelectorAll('[data-em]').forEach(b=>{ b.onclick = ()=>{
+      if(!orp) return;
+      const cur = Number.isInteger(orp.q[cid]) ? orp.q[cid] : 0, autres = orpTotal() - (cur|0);
+      orp.q[cid] = Math.max(0, Math.min(orp.detenu - autres, cur + (+b.dataset.em)));   // les boutons ne dépassent jamais le total détenu
+      if(orp.q[cid] < 0) orp.q[cid] = 0;
+      inp.value = orp.q[cid]; marquer();
+    }; });
+    inp.addEventListener('input', ()=>{ if(!orp) return; const t = inp.value.trim(); orp.q[cid] = t==='' ? 0 : /^\d{1,6}$/.test(t) ? parseInt(t, 10) : NaN; marquer(); });
+    inp.addEventListener('focus', ()=>{ try{ inp.select(); }catch(e){} });
+    row.querySelector('.emp-tout').onclick = ()=>{ if(!orp) return; Object.keys(orp.q).forEach(k=>{ orp.q[k] = 0; }); orp.q[cid] = orp.detenu; orpRender(); };
+  });
+  document.getElementById('orEmpNouveau').onclick = ()=>{ const c = nouveauCoffre(false); if(c) orpRender(); };
+  const vd = document.getElementById('orEmpVider'); if(vd) vd.onclick = ()=>{ Object.keys(orp.q).forEach(k=>{ orp.q[k] = 0; }); orpRender(); };
+  orpBilan();
+}
+function orpBilan(){
+  const el = document.getElementById('orEmpBilan'), ok = document.getElementById('orEmpOk'); if(!el || !orp) return;
+  const invalide = (S.coffres||[]).some(c=>orp.q[c.id]!=null && !Number.isInteger(orp.q[c.id]));
+  const tot = orpTotal(), d = orp.detenu, reste = d - tot;
+  let t, ko = false;
+  if(invalide){ t = '⚠️ Indique un nombre entier de pièces (0 ou plus).'; ko = true; }
+  else if(reste < 0){ t = `⚠️ ${tot} pièces réparties pour ${d} détenue${vS(d)} : retires-en ${-reste}.`; ko = true; }
+  else if(tot===0) t = d>1 ? `📍 Les ${d} pièces : emplacement non renseigné.` : '📍 Emplacement non renseigné.';
+  else if(reste===0) t = d>1 ? `✅ Les ${d} pièces sont rangées.` : '✅ La pièce est rangée.';
+  else t = `✅ ${tot} rangée${vS(tot)} · ${reste} non renseignée${vS(reste)}`;
+  el.textContent = t; el.classList.toggle('ko', ko); ok.disabled = ko;
+}
+function orpEnregistrer(){
+  if(!orp) return;
+  const l = orLot(orp.lot); if(!l){ orpFermer(); toast('Cet achat n\'existe plus'); return; }
+  orp.detenu = orpDetenu(l);            // recalculé : une vente a pu être enregistrée entre-temps
+  const q = {}; let tot = 0, ko = false;
+  (S.coffres||[]).forEach(c=>{ const v = orp.q[c.id]; if(v==null) return; if(!Number.isInteger(v) || v<0){ ko = true; return; } if(v>0){ q[c.id] = v; tot += v; } });
+  if(ko || tot > orp.detenu){ orpBilan(); return; }
+  orpFixer(l.id, q);
+  orpFermer(); render();
+  toast(tot ? '📍 Emplacement enregistré' : '📍 Emplacement non renseigné');
+}
+(function(){
+  const $ = i=>document.getElementById(i);
+  $('orEmpBg').onclick = orpFermer; $('orEmpX').onclick = orpFermer; $('orEmpAnnuler').onclick = orpFermer;
+  $('orEmpOk').onclick = orpEnregistrer;
+  enableSwipeDown($('orEmpSheet'), orpFermer);
+})();
 
 /* ---------- en-tête (carte du haut) ---------- */
 function orProgress(T, D, ring, ringtxt){
