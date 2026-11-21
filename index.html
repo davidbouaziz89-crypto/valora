@@ -2122,7 +2122,9 @@ document.getElementById('snackUndo').onclick = ()=>{
 
 /* ============ HELPERS ============ */
 function chk(){ return '<svg viewBox="0 0 24 24"><polyline points="4 12 10 18 20 6"/></svg>'; }
-function esc(s){ return s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+function esc(s){ return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+// photo acceptée seulement si c'est VRAIMENT un JPEG en base64 (rien qui puisse sortir de l'attribut src)
+function photoSure(s){ return typeof s==='string' && /^data:image\/jpeg;base64,[A-Za-z0-9+\/]+=*$/.test(s); }
 function emptyState(e,t,s){ return `<div class="empty"><div class="big">${e}</div><b>${t}</b>${s}</div>`; }
 function burst(node){
   const r = node.getBoundingClientRect();
@@ -2818,7 +2820,7 @@ function phSupprimer(pid){
 function phRemplir(root){
   (root||document).querySelectorAll('[data-ph]').forEach(async el=>{
     const pid = el.dataset.ph; if(!pid) return;
-    const img = await phLire(pid); if(!img || el.dataset.ph!==pid || !el.isConnected) return;
+    const img = await phLire(pid); if(!photoSure(img) || el.dataset.ph!==pid || !el.isConnected) return;
     if(el.classList.contains('vphoto-ph')){ const i = document.createElement('img'); i.className='vphoto'; i.alt=''; i.src=img; el.replaceWith(i); }
     else el.innerHTML = '<img alt="" src="'+img+'">';
   });
@@ -4013,7 +4015,7 @@ async function orChargerPhoto(lid){
   if(orPhotos[lid]){ const b=box(); if(b) b.innerHTML = `<img class="or-d-photo" src="${orPhotos[lid]}" alt="Photo de la pièce">`; return; }
   try{ const {data, error} = await cloud.sb.rpc('zeste_or_photo_lire', { p_lot: lid });
     if(error) throw error;
-    if(data && /^data:image\/jpeg;base64,/.test(data)){ orPhotos[lid] = data; if(String(orLotId)===String(lid)){ const b=box(); if(b) b.innerHTML = `<img class="or-d-photo" src="${data}" alt="Photo de la pièce">`; } }
+    if(data && photoSure(data)){ orPhotos[lid] = data; if(String(orLotId)===String(lid)){ const b=box(); if(b) b.innerHTML = `<img class="or-d-photo" src="${data}" alt="Photo de la pièce">`; } }
   }catch(e){ console.warn('photo', e); }
 }
 
