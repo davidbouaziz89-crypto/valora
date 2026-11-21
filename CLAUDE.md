@@ -41,6 +41,13 @@ Une correction faite dans Prêts ou Or de VALORA ne concerne plus Zeste (qui ne 
   inventée : une enveloppe sans `ts` affiche « Date d'ajout inconnue »). Montres : `{marque, modele, ref, prixC|null, cur,
   dateAchat, photo, cote}` ; `cote = {valeurC, cur, methode:'auto'|'manuel', source, date, …}`.
   **Montants en centimes entiers ; devises EUR/USD/ILS jamais additionnées entre elles.**
+- **Emplacement des pièces d'or** (22/11/2026) : rangé DANS les coffres existants,
+  `coffre.orPieces = [{lot:<id zeste.or_lots>, qte}]` (absent = aucune pièce). Aucune écriture dans les
+  tables de l'Or. Comptage plafonné aux pièces détenues (vente faite ailleurs → surplus ni affiché ni
+  valorisé, achat signalé « à revoir ») ; valeur = celle du module Or (`orLotStats`), en €, une seule fois.
+  Après une vente / modification / suppression d'achat : ajustement automatique si un seul coffre,
+  sinon la fenêtre Emplacement s'ouvre. Supprimer un coffre = ses pièces repassent « non renseignées ».
+  Recette : `tests/essai/or-coffres.mjs` (ordinateur + iPhone sombre/clair, mesures d'écran).
 - **Photos** : `valora.photos` (JPEG base64 ≤ 450 Ko, identifiant uuid choisi par l'appareil),
   copie locale IndexedDB `valora-photos`, envoi différé si hors connexion.
 - **Or : PAS dans le schéma valora.** L'onglet Or utilise les tables `zeste.or_*`, les fonctions
@@ -61,6 +68,7 @@ saisie manuelle proposée. Quota : 20/jour/compte, 300/mois au total. Coût ≈ 
 node --experimental-strip-types --test tests/montres/cote.test.mjs
 PGLITE_DIR=… node --test tests/sql/valora.test.mjs     # pglite 0.5.9 installé HORS du dépôt
 PGLITE_DIR=… node --experimental-strip-types tests/essai/serveur-essai.mjs 8777   # appli complète en local
+PUPPETEER_DIR=~/projects/engco node tests/essai/or-coffres.mjs 8777 <captures>  # recette Or ↔ Coffres (serveur d'essai lancé)
 ```
 Les bancs SQL et d'essai chargent la chaîne de production de Zeste depuis `~/projects/zeste`
 (`ZESTE_DIR` pour un autre chemin). Le banc d'essai utilise la VRAIE fonction du cours de l'or et la

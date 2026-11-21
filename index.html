@@ -1101,7 +1101,7 @@
   .sheet.oremp-sheet{z-index:61} #orEmpBg{z-index:60}
   .or-emp{display:block;width:100%;text-align:left;border:none;border-top:1px solid var(--line);background:none;font:inherit;color:var(--ink);
     font-size:13px;font-weight:700;padding:8px 12px 9px;line-height:1.35;overflow-wrap:anywhere}
-  button.or-emp{cursor:pointer} button.or-emp:active{background:var(--line)}
+  button.or-emp{cursor:pointer;min-height:44px} button.or-emp:active{background:var(--line)}
   .or-emp.vide{color:var(--muted)} .or-emp.alerte{color:var(--red)}
   .or-achat-l .emp{grid-column:1/-1;font-style:normal;font-size:12.5px;font-weight:700;color:var(--ink);overflow-wrap:anywhere}
   .or-achat-l .emp.vide{color:var(--muted)} .or-achat-l .emp.alerte{color:var(--red)}
@@ -1113,6 +1113,7 @@
   .emp-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:var(--field);border:2px solid var(--line);border-radius:14px;padding:8px 10px;margin-top:8px}
   .emp-row.on{border-color:var(--or2,#e0b84a)}
   .emp-row .emp-nom{flex:1 1 140px;min-width:0;font-weight:800;font-size:15px;overflow-wrap:anywhere}
+  .emp-row .emp-ctl{flex:none;display:flex;align-items:center;gap:6px;margin-left:auto}
   .emp-row .or-step{flex:0 0 auto;gap:4px}
   .emp-row .or-step button{width:42px;height:42px}
   .emp-row .or-step input{width:64px;flex:none;padding:8px 4px}
@@ -4446,11 +4447,11 @@ function orpRender(){
   cs.forEach(c=>{
     const n = orp.q[c.id]|0, nom = String(c.nom||'Coffre');
     h += `<div class="emp-row${n?' on':''}" data-cid="${escA(c.id)}"><span class="emp-nom">🔐 ${esc(nom)}</span>
-      <div class="or-step"><button type="button" data-em="-1" aria-label="Une pièce de moins dans ${escA(nom)}">−</button><input class="field" inputmode="numeric" pattern="[0-9]*" value="${n}" aria-label="Nombre de pièces dans ${escA(nom)}" autocomplete="off" /><button type="button" data-em="1" aria-label="Une pièce de plus dans ${escA(nom)}">＋</button></div>
-      <button type="button" class="emp-tout">Tout ici</button></div>`;
+      <div class="emp-ctl"><div class="or-step"><button type="button" data-em="-1" aria-label="Une pièce de moins dans ${escA(nom)}">−</button><input class="field" inputmode="numeric" pattern="[0-9]*" value="${n}" aria-label="Nombre de pièces dans ${escA(nom)}" autocomplete="off" /><button type="button" data-em="1" aria-label="Une pièce de plus dans ${escA(nom)}">＋</button></div>
+      <button type="button" class="emp-tout">Tout ici</button></div></div>`;
   });
   h += `<p class="emp-bilan" id="orEmpBilan" role="status"></p>
-    <div class="emp-liens"><button type="button" class="or-lien" id="orEmpNouveau">＋ Nouveau coffre</button>${cs.length ? `<button type="button" class="or-lien rouge" id="orEmpVider">Tout en « non renseigné »</button>` : ''}</div>`;
+    <div class="emp-liens"><button type="button" class="or-lien" id="orEmpNouveau">＋ Nouveau coffre</button>${cs.length ? `<button type="button" class="or-lien rouge" id="orEmpVider">Vider la répartition</button>` : ''}</div>`;
   body.innerHTML = h;
   body.querySelectorAll('.emp-row').forEach(row=>{
     const cid = row.dataset.cid, inp = row.querySelector('input');
