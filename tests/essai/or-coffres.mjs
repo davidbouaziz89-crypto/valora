@@ -120,6 +120,17 @@ async function parcours(nom, viewport, theme){
   ok(att.t1.or.valC + att.t2.or.valC === att.valeurOr, 'toutes les pièces rangées : somme des coffres = « Valeur actuelle » de l\'Or (aucun double compte)');
   // Coffre maison : objets 2400 + 3×450 = 3750 € + enveloppe 5000 € = 8750 € (+ or) ; 1200 $ à part
   ok(att.t1.tot.EUR === 875000 + att.t1.or.valC && att.t1.tot.USD === 120000, 'total du coffre = objets + enveloppes + or (€), dollars jamais additionnés');
+  // répartition anormale (doublons dans un coffre, surplus entre coffres) : chaque pièce comptée au plus une fois
+  const dbl = await ev((n, s) => {
+    const sauve = JSON.stringify(S.coffres);
+    coffreById('c1').orPieces = [{ lot: n, qte: 8 }, { lot: n, qte: 8 }, { lot: s, qte: 2 }, { lot: s, qte: 2 }];
+    coffreById('c2').orPieces = [{ lot: n, qte: 10 }, { lot: s, qte: 5 }];
+    const a = coffreTotaux(coffreById('c1')).or, b = coffreTotaux(coffreById('c2')).or;
+    const P = orPortefeuille(OR.lots, OR.ventes, orCoursG());
+    S.coffres = JSON.parse(sauve);          // état remis tel quel, sans enregistrement
+    return { n: a.n + b.n, val: a.valC + b.valC, valeurOr: P.valeur, pieces: P.pieces };
+  }, idNapo, idSouv);
+  ok(dbl.n === dbl.pieces && dbl.val === dbl.valeurOr, `doublons et surplus : ${dbl.n} pièces comptées pour ${dbl.pieces} détenues, valeur des coffres = valeur de l'Or (jamais au-delà)`);
   const carte = await texte('#view-coffres [data-cof="c1"]');
   ok(carte.includes('8 pièces d\'or'), 'carte du coffre : « 8 pièces d\'or » (' + carte + ')');
   await capt('6-liste-coffres');
